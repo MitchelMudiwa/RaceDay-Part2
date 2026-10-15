@@ -1,53 +1,27 @@
-# Example: improved Build and Test workflow with caching, test-artifact upload and concurrency
 name: Build and Test
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "master", "main", "develop" ]
   pull_request:
-    branches: [ "main", "develop" ]
-
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ "master", "main", "develop" ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet: [ "10.0.x" ] # add other versions if you want: "9.0.x"
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          dotnet-version: 8.0.x
 
       - name: Restore
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build --configuration Release --no-restore
 
-      - name: Run unit tests (TRX)
-        run: |
-          mkdir -p test-results
-          dotnet test --no-build --configuration Release \
-            --logger "trx;LogFileName=TestResults.trx" \
-            --results-directory test-results
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results/*.trx
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
